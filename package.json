@@ -1,6 +1,6 @@
 {
 	"name": "create-coral",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"type": "module",
 	"description": "Scaffold a new Coral module from the official template.",
 	"repository": {

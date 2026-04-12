@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/Get-Coral/create-coral/compare/v1.0.1...v1.0.2) (2026-04-12)
+
+
+### Bug Fixes
+
+* update README for clarity on template repository usage and cloning process ([12614b2](https://github.com/Get-Coral/create-coral/commit/12614b2d16dc42c66e4bb84beaec5cf387df83de))
+
 ## [1.0.1](https://github.com/Get-Coral/create-coral/compare/v1.0.0...v1.0.1) (2026-04-12)
 
 
