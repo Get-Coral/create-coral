@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/Get-Coral/create-coral/compare/v1.0.0...v1.0.1) (2026-04-12)
+
+
+### Bug Fixes
+
+* add support for custom template repository and reference in scaffolding ([0a4dad9](https://github.com/Get-Coral/create-coral/commit/0a4dad97fd329320a3a0d80654a352d0a6a56278))
+
 ## 1.0.0 (2026-04-12)
 
 
