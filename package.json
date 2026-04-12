@@ -1,38 +1,53 @@
 {
-  "name": "create-coral",
-  "version": "0.1.0",
-  "type": "module",
-  "description": "Scaffold a new Coral module from the official template.",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Get-Coral/create-coral.git"
-  },
-  "homepage": "https://github.com/Get-Coral/create-coral#readme",
-  "bugs": {
-    "url": "https://github.com/Get-Coral/create-coral/issues"
-  },
-  "author": {
-    "name": "Coral",
-    "url": "https://getcoral.dev"
-  },
-  "bin": {
-    "create-coral": "./bin/create-coral.mjs"
-  },
-  "files": [
-    "bin"
-  ],
-  "keywords": [
-    "coral",
-    "create",
-    "scaffold",
-    "jellyfin",
-    "template"
-  ],
-  "license": "MIT",
-  "publishConfig": {
-    "access": "public"
-  },
-  "engines": {
-    "node": ">=20"
-  }
+	"name": "create-coral",
+	"version": "0.1.0",
+	"type": "module",
+	"description": "Scaffold a new Coral module from the official template.",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/Get-Coral/create-coral.git"
+	},
+	"homepage": "https://github.com/Get-Coral/create-coral#readme",
+	"bugs": {
+		"url": "https://github.com/Get-Coral/create-coral/issues"
+	},
+	"author": {
+		"name": "Coral",
+		"url": "https://getcoral.dev"
+	},
+	"bin": {
+		"create-coral": "./bin/create-coral.mjs"
+	},
+	"scripts": {
+		"build": "tsup",
+		"typecheck": "tsc --noEmit",
+		"check": "biome check . && pnpm typecheck",
+		"lint": "biome lint . --write",
+		"format": "biome format . --write",
+		"prepublishOnly": "pnpm build",
+		"test:smoke": "pnpm build && tmp_dir=$(mktemp -d) && node ./bin/create-coral.mjs \"$tmp_dir/module\" --module-name smoke-module --assignee ElianCodes --yes --no-install && test -f \"$tmp_dir/module/package.json\" && rm -rf \"$tmp_dir\""
+	},
+	"files": [
+		"bin"
+	],
+	"keywords": [
+		"coral",
+		"create",
+		"scaffold",
+		"jellyfin",
+		"template"
+	],
+	"license": "MIT",
+	"publishConfig": {
+		"access": "public"
+	},
+	"engines": {
+		"node": ">=20"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.4.11",
+		"@types/node": "^24.5.2",
+		"tsup": "^8.5.0",
+		"typescript": "^5.9.3"
+	}
 }
