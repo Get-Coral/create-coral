@@ -7,7 +7,7 @@ export default defineConfig({
 	format: ["esm"],
 	target: "node20",
 	platform: "node",
-	outDir: "bin",
+	outDir: "dist",
 	clean: true,
 	splitting: false,
 	sourcemap: false,

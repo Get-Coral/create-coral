@@ -16,7 +16,7 @@
 		"url": "https://getcoral.dev"
 	},
 	"bin": {
-		"create-coral": "./bin/create-coral.mjs"
+		"create-coral": "./dist/create-coral.mjs"
 	},
 	"scripts": {
 		"build": "tsup",
@@ -25,10 +25,10 @@
 		"lint": "biome lint . --write",
 		"format": "biome format . --write",
 		"prepublishOnly": "pnpm build",
-		"test:smoke": "pnpm build && tmp_dir=$(mktemp -d) && node ./bin/create-coral.mjs \"$tmp_dir/module\" --module-name smoke-module --assignee ElianCodes --yes --no-install && test -f \"$tmp_dir/module/package.json\" && rm -rf \"$tmp_dir\""
+		"test:smoke": "pnpm build && tmp_dir=$(mktemp -d) && node ./dist/create-coral.mjs \"$tmp_dir/module\" --module-name smoke-module --yes --no-install && test -f \"$tmp_dir/module/package.json\" && rm -rf \"$tmp_dir\""
 	},
 	"files": [
-		"bin"
+		"dist"
 	],
 	"keywords": [
 		"coral",
@@ -43,6 +43,9 @@
 	},
 	"engines": {
 		"node": ">=20"
+	},
+	"dependencies": {
+		"@clack/prompts": "^0.11.0"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.11",

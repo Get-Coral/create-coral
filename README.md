@@ -2,6 +2,8 @@
 
 Scaffold a new Coral module from the official `template/` in the Coral repository.
 
+The CLI is interactive by default and ships a guided setup flow for naming, destination, and dependency installation.
+
 ## Usage
 
 ```bash
@@ -17,12 +19,11 @@ pnpm create coral@latest
 ## Options
 
 ```bash
-pnpm create coral@latest my-module -- --assignee ElianCodes --no-install
+pnpm create coral@latest my-module -- --no-install
 ```
 
 Supported flags:
 
-- `--assignee <github-user>`
 - `--module-name <name>`
 - `--yes`
 - `--install`
@@ -34,5 +35,5 @@ Supported flags:
 - fetches the latest `template/` from `Get-Coral/coral`
 - copies it into your target directory
 - renames `coral-module` placeholders
-- updates the Release Please assignee
+- keeps the template's release automation intact
 - optionally runs `pnpm install`
