@@ -1,0 +1,26 @@
+{
+  "name": "create-coral",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Scaffold a new Coral module from the official template.",
+  "bin": {
+    "create-coral": "./bin/create-coral.mjs"
+  },
+  "files": [
+    "bin"
+  ],
+  "keywords": [
+    "coral",
+    "create",
+    "scaffold",
+    "jellyfin",
+    "template"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
