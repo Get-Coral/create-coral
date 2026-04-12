@@ -24,8 +24,8 @@ import {
 	text,
 } from "@clack/prompts";
 
-const ARCHIVE_URL =
-	"https://codeload.github.com/Get-Coral/template/tar.gz/refs/heads/main";
+const DEFAULT_TEMPLATE_REPO = "Get-Coral/template";
+const DEFAULT_TEMPLATE_REF = "main";
 const REEF = "🪸";
 const WAVE = "🌊";
 
@@ -34,6 +34,8 @@ type Options = {
 	install: boolean | undefined;
 	moduleName: string | undefined;
 	targetDir: string | undefined;
+	templateRepo: string;
+	templateRef: string;
 };
 
 function showHelp(): void {
@@ -46,6 +48,9 @@ Usage
 
 Options
   --module-name <name>   Override the module/package name
+	--template-repo <org/repo>
+												 Use a custom template repository
+	--template-ref <ref>   Template git ref (branch, tag, or SHA)
   --yes                  Skip prompts and use defaults
   --install              Run pnpm install after scaffolding
   --no-install           Skip pnpm install
@@ -67,6 +72,8 @@ function parseArgs(argv: string[]): Options {
 		install: undefined,
 		moduleName: undefined,
 		targetDir: undefined,
+		templateRepo: DEFAULT_TEMPLATE_REPO,
+		templateRef: DEFAULT_TEMPLATE_REF,
 	};
 
 	for (let index = 0; index < argv.length; index += 1) {
@@ -92,6 +99,16 @@ function parseArgs(argv: string[]): Options {
 			index += 1;
 			continue;
 		}
+		if (arg === "--template-repo") {
+			options.templateRepo = argv[index + 1] ?? "";
+			index += 1;
+			continue;
+		}
+		if (arg === "--template-ref") {
+			options.templateRef = argv[index + 1] ?? "";
+			index += 1;
+			continue;
+		}
 		if (arg.startsWith("-")) {
 			throw new Error(`Unknown option: ${arg}`);
 		}
@@ -107,6 +124,15 @@ function parseArgs(argv: string[]): Options {
 
 function isValidModuleName(value: string): boolean {
 	return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value);
+}
+
+function isValidTemplateRepo(value: string): boolean {
+	return /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(value);
+}
+
+function buildArchiveUrl(templateRepo: string, templateRef: string): string {
+	const encodedRef = encodeURIComponent(templateRef);
+	return `https://codeload.github.com/${templateRepo}/tar.gz/${encodedRef}`;
 }
 
 function unwrapPrompt<T>(value: T | symbol, message: string): T {
@@ -218,11 +244,23 @@ async function main(): Promise<void> {
 		);
 	}
 	moduleName = (moduleName ?? defaultModuleName).trim();
+	const templateRepo = options.templateRepo.trim();
+	const templateRef = options.templateRef.trim();
 
 	if (!isValidModuleName(moduleName)) {
 		throw new Error(
 			"Module name must be lowercase kebab-case, e.g. marquee or karaoke-queue.",
 		);
+	}
+
+	if (!isValidTemplateRepo(templateRepo)) {
+		throw new Error(
+			"Template repo must be in owner/repo format, e.g. Get-Coral/template.",
+		);
+	}
+
+	if (!templateRef) {
+		throw new Error("Template ref is required.");
 	}
 
 	let install = options.install;
@@ -260,6 +298,7 @@ async function main(): Promise<void> {
 		[
 			`Module: ${moduleName}`,
 			`Directory: ${targetDir}`,
+			`Template: ${templateRepo}@${templateRef}`,
 			`Install dependencies: ${install ? "Yes" : "No"}`,
 		].join("\n"),
 		"Scaffold plan",
@@ -269,10 +308,11 @@ async function main(): Promise<void> {
 	const tempDir = mkdtempSync(path.join(tmpdir(), "create-coral-"));
 
 	try {
-		const archivePath = path.join(tempDir, "coral-template-main.tar.gz");
+		const archivePath = path.join(tempDir, "template.tar.gz");
+		const archiveUrl = buildArchiveUrl(templateRepo, templateRef);
 
 		progress.start("Downloading the Coral template");
-		run("curl", ["-L", ARCHIVE_URL, "-o", archivePath]);
+		run("curl", ["-L", archiveUrl, "-o", archivePath]);
 		run("tar", ["-xzf", archivePath, "-C", tempDir]);
 		progress.stop("Template downloaded");
 
