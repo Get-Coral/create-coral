@@ -15,6 +15,12 @@ importers:
       '@biomejs/biome':
         specifier: ^2.4.11
         version: 2.4.11
+      '@get-coral/biome-config':
+        specifier: ^0.2.0
+        version: 0.2.0(@biomejs/biome@2.4.11)
+      '@get-coral/tsconfig':
+        specifier: ^0.2.0
+        version: 0.2.0(typescript@5.9.3)
       '@types/node':
         specifier: ^24.5.2
         version: 24.12.2
@@ -245,6 +251,16 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@get-coral/biome-config@0.2.0':
+    resolution: {integrity: sha512-L9hB02oCFXGOCf6zevofucnUgcle8hml4qKPiK77vbGKQ7nfwlIEDSsi9/w+kue5HL2a3lct29OAUyMU7dwjcA==}
+    peerDependencies:
+      '@biomejs/biome': '>=2.4.0'
+
+  '@get-coral/tsconfig@0.2.0':
+    resolution: {integrity: sha512-XJrnu1R2SP+UfPwOhpJtVo1pdmWsUx5gYDGrOnj9PjRHlO2PPxOv+NGEL4dWw3V/WYPWH2dzMVpApWN3npJE2g==}
+    peerDependencies:
+      typescript: '>=5.7.0'
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -734,6 +750,14 @@ snapshots:
 
   '@esbuild/win32-x64@0.27.7':
     optional: true
+
+  '@get-coral/biome-config@0.2.0(@biomejs/biome@2.4.11)':
+    dependencies:
+      '@biomejs/biome': 2.4.11
+
+  '@get-coral/tsconfig@0.2.0(typescript@5.9.3)':
+    dependencies:
+      typescript: 5.9.3
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:

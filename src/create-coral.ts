@@ -130,11 +130,6 @@ function isValidTemplateRepo(value: string): boolean {
 	return /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(value);
 }
 
-function buildArchiveUrl(templateRepo: string, templateRef: string): string {
-	const encodedRef = encodeURIComponent(templateRef);
-	return `https://codeload.github.com/${templateRepo}/tar.gz/${encodedRef}`;
-}
-
 function unwrapPrompt<T>(value: T | symbol, message: string): T {
 	if (isCancel(value)) {
 		cancel(message);
@@ -157,9 +152,7 @@ function run(command: string, args: string[], cwd?: string): string {
 	});
 
 	if (result.status !== 0) {
-		const details = [result.stdout?.trim(), result.stderr?.trim()]
-			.filter(Boolean)
-			.join("\n");
+		const details = [result.stdout?.trim(), result.stderr?.trim()].filter(Boolean).join("\n");
 
 		throw new Error(
 			details
@@ -178,10 +171,7 @@ function copyTemplate(sourceDir: string, targetDir: string): void {
 	});
 }
 
-function replaceInFile(
-	filePath: string,
-	replacements: Array<[string, string]>,
-): void {
+function replaceInFile(filePath: string, replacements: Array<[string, string]>): void {
 	if (!existsSync(filePath)) return;
 	let content = readFileSync(filePath, "utf8");
 	for (const [searchValue, replaceValue] of replacements) {
@@ -194,13 +184,51 @@ function isDirectoryEmpty(dirPath: string): boolean {
 	return !existsSync(dirPath) || readdirSync(dirPath).length === 0;
 }
 
+function cloneTemplateRepo(templateRepo: string, templateRef: string, tempDir: string): string {
+	const sourceDir = path.join(tempDir, "template-src");
+	const remoteUrl = `https://github.com/${templateRepo}.git`;
+
+	run("git", ["clone", "--filter=blob:none", remoteUrl, sourceDir]);
+	run("git", ["checkout", templateRef], sourceDir);
+	rmSync(path.join(sourceDir, ".git"), { recursive: true, force: true });
+
+	return sourceDir;
+}
+
+function normalizeWorkspaceDependencyRanges(packageJsonPath: string): void {
+	if (!existsSync(packageJsonPath)) return;
+
+	const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as Record<
+		string,
+		Record<string, string>
+	>;
+	const dependencyFields = [
+		"dependencies",
+		"devDependencies",
+		"peerDependencies",
+		"optionalDependencies",
+	];
+
+	for (const field of dependencyFields) {
+		const dependencies = packageJson[field];
+		if (!dependencies) continue;
+
+		for (const [name, range] of Object.entries(dependencies)) {
+			if (typeof range === "string" && range.startsWith("workspace:")) {
+				dependencies[name] = range.replace("workspace:", "");
+			}
+		}
+	}
+
+	writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
+}
+
 async function main(): Promise<void> {
 	printBanner();
 
 	const options = parseArgs(process.argv.slice(2));
 	const targetFallback =
-		options.targetDir ??
-		(options.moduleName ? `./${options.moduleName}` : undefined);
+		options.targetDir ?? (options.moduleName ? `./${options.moduleName}` : undefined);
 	const targetArg =
 		targetFallback ??
 		(options.yes
@@ -217,8 +245,7 @@ async function main(): Promise<void> {
 	const normalizedTargetArg = targetArg.trim() || ".";
 	const targetDir = path.resolve(process.cwd(), normalizedTargetArg);
 	const defaultModuleName =
-		options.moduleName ??
-		(normalizedTargetArg === "." ? "coral-module" : path.basename(targetDir));
+		options.moduleName ?? (normalizedTargetArg === "." ? "coral-module" : path.basename(targetDir));
 
 	let moduleName = options.moduleName;
 	if (!moduleName && !options.yes) {
@@ -248,15 +275,11 @@ async function main(): Promise<void> {
 	const templateRef = options.templateRef.trim();
 
 	if (!isValidModuleName(moduleName)) {
-		throw new Error(
-			"Module name must be lowercase kebab-case, e.g. marquee or karaoke-queue.",
-		);
+		throw new Error("Module name must be lowercase kebab-case, e.g. marquee or karaoke-queue.");
 	}
 
 	if (!isValidTemplateRepo(templateRepo)) {
-		throw new Error(
-			"Template repo must be in owner/repo format, e.g. Get-Coral/template.",
-		);
+		throw new Error("Template repo must be in owner/repo format, e.g. Get-Coral/template.");
 	}
 
 	if (!templateRef) {
@@ -308,24 +331,11 @@ async function main(): Promise<void> {
 	const tempDir = mkdtempSync(path.join(tmpdir(), "create-coral-"));
 
 	try {
-		const archivePath = path.join(tempDir, "template.tar.gz");
-		const archiveUrl = buildArchiveUrl(templateRepo, templateRef);
-
-		progress.start("Downloading the Coral template");
-		run("curl", ["-L", archiveUrl, "-o", archivePath]);
-		run("tar", ["-xzf", archivePath, "-C", tempDir]);
-		progress.stop("Template downloaded");
-
-		const extractedRoot = readdirSync(tempDir, { withFileTypes: true }).find(
-			(entry) => entry.isDirectory() && entry.name.endsWith("-main"),
-		)?.name;
-
-		if (!extractedRoot) {
-			throw new Error("Could not find extracted template directory.");
-		}
+		progress.start("Cloning the Coral template");
+		const sourceDir = cloneTemplateRepo(templateRepo, templateRef, tempDir);
+		progress.stop("Template cloned");
 
 		progress.start("Wiring up module files");
-		const sourceDir = path.join(tempDir, extractedRoot);
 		copyTemplate(sourceDir, targetDir);
 
 		const replacements: Array<[string, string]> = [
@@ -344,6 +354,7 @@ async function main(): Promise<void> {
 		for (const relativePath of filesToRewrite) {
 			replaceInFile(path.join(targetDir, relativePath), replacements);
 		}
+		normalizeWorkspaceDependencyRanges(path.join(targetDir, "package.json"));
 		progress.stop(`${REEF} ${moduleName} scaffolded`);
 
 		if (install) {
@@ -356,9 +367,7 @@ async function main(): Promise<void> {
 
 		const relativeTargetDir = path.relative(process.cwd(), targetDir);
 		const displayTargetDir =
-			!relativeTargetDir || relativeTargetDir.startsWith("..")
-				? targetDir
-				: relativeTargetDir;
+			!relativeTargetDir || relativeTargetDir.startsWith("..") ? targetDir : relativeTargetDir;
 
 		note(
 			[
