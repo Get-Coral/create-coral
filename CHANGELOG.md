@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.3](https://github.com/Get-Coral/create-coral/compare/v1.0.2...v1.0.3) (2026-04-13)
+
+
+### Bug Fixes
+
+* use global standards ([7448403](https://github.com/Get-Coral/create-coral/commit/7448403db565587641fc0e0d66576f56b3e97358))
+* use global standards ([763b8de](https://github.com/Get-Coral/create-coral/commit/763b8dead939972d19190fbfa2b20db3dba1e05b))
+
 ## [1.0.2](https://github.com/Get-Coral/create-coral/compare/v1.0.1...v1.0.2) (2026-04-12)
 
 
