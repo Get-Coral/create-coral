@@ -1,5 +1,6 @@
 {
 	"$schema": "https://biomejs.dev/schemas/2.4.11/schema.json",
+	"extends": ["./node_modules/@get-coral/biome-config/base.jsonc"],
 	"vcs": {
 		"enabled": true,
 		"clientKind": "git",
@@ -15,20 +16,16 @@
 		]
 	},
 	"formatter": {
-		"enabled": true,
 		"indentStyle": "tab"
 	},
-	"assist": {
-		"actions": {
-			"source": {
-				"organizeImports": "on"
-			}
-		}
-	},
 	"linter": {
-		"enabled": true,
 		"rules": {
-			"recommended": true
+			"suspicious": {
+				"noConsole": "off"
+			},
+			"complexity": {
+				"noExcessiveCognitiveComplexity": "off"
+			}
 		}
 	},
 	"javascript": {
