@@ -15,9 +15,6 @@
 			".github/workflows/**/*"
 		]
 	},
-	"formatter": {
-		"indentStyle": "tab"
-	},
 	"linter": {
 		"rules": {
 			"suspicious": {
@@ -26,11 +23,6 @@
 			"complexity": {
 				"noExcessiveCognitiveComplexity": "off"
 			}
-		}
-	},
-	"javascript": {
-		"formatter": {
-			"quoteStyle": "double"
 		}
 	}
 }
