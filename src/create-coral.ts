@@ -23,11 +23,25 @@ import {
 	spinner,
 	text,
 } from "@clack/prompts";
+import {
+	deriveModuleNameShape,
+	deriveTemplateShape,
+	disableTelemetry,
+	flushTelemetry,
+	getTelemetryEndpoint,
+	isTelemetryEnabled,
+	markFirstRunNoticeShown,
+	sendEvent,
+	setPersistentTelemetryDisabled,
+	shouldShowFirstRunNotice,
+} from "./telemetry.js";
 
 const DEFAULT_TEMPLATE_REPO = "Get-Coral/template";
 const DEFAULT_TEMPLATE_REF = "main";
 const REEF = "🪸";
 const WAVE = "🌊";
+
+const PACKAGE_VERSION = readPackageVersion();
 
 type Options = {
 	yes: boolean;
@@ -36,7 +50,19 @@ type Options = {
 	targetDir: string | undefined;
 	templateRepo: string;
 	templateRef: string;
+	telemetryAction: "scaffold" | "telemetry-disable" | "telemetry-enable" | "telemetry-status";
 };
+
+function readPackageVersion(): string {
+	try {
+		const packageJsonPath = new URL("../package.json", import.meta.url);
+		const raw = readFileSync(packageJsonPath, "utf8");
+		const parsed = JSON.parse(raw) as { version?: string };
+		return parsed.version ?? "0.0.0";
+	} catch {
+		return "0.0.0";
+	}
+}
 
 function showHelp(): void {
 	console.log(`
@@ -54,7 +80,20 @@ Options
   --yes                  Skip prompts and use defaults
   --install              Run pnpm install after scaffolding
   --no-install           Skip pnpm install
+  --no-telemetry         Disable anonymous telemetry for this run
+  --telemetry-status     Show telemetry status and exit
+  --telemetry-disable    Persistently disable anonymous telemetry and exit
+  --telemetry-enable     Re-enable anonymous telemetry and exit
   --help                 Show this help
+
+Telemetry
+  create-coral collects anonymous, opt-out usage data to help improve the CLI.
+  Disable it any time with one of:
+    --no-telemetry              (one run)
+    --telemetry-disable         (persistent)
+    CORAL_TELEMETRY_DISABLED=1  (env var)
+    DO_NOT_TRACK=1              (industry-standard env var)
+  Read more at https://getcoral.dev/telemetry
 `);
 }
 
@@ -74,6 +113,7 @@ function parseArgs(argv: string[]): Options {
 		targetDir: undefined,
 		templateRepo: DEFAULT_TEMPLATE_REPO,
 		templateRef: DEFAULT_TEMPLATE_REF,
+		telemetryAction: "scaffold",
 	};
 
 	for (let index = 0; index < argv.length; index += 1) {
@@ -92,6 +132,22 @@ function parseArgs(argv: string[]): Options {
 		}
 		if (arg === "--no-install") {
 			options.install = false;
+			continue;
+		}
+		if (arg === "--no-telemetry") {
+			disableTelemetry();
+			continue;
+		}
+		if (arg === "--telemetry-status") {
+			options.telemetryAction = "telemetry-status";
+			continue;
+		}
+		if (arg === "--telemetry-disable") {
+			options.telemetryAction = "telemetry-disable";
+			continue;
+		}
+		if (arg === "--telemetry-enable") {
+			options.telemetryAction = "telemetry-enable";
 			continue;
 		}
 		if (arg === "--module-name") {
@@ -122,6 +178,42 @@ function parseArgs(argv: string[]): Options {
 	return options;
 }
 
+function classifyError(error: unknown): string {
+	if (error instanceof Error) {
+		const message = error.message.toLowerCase();
+		if (message.includes("git ")) return "git-clone-failed";
+		if (message.includes("pnpm install")) return "install-failed";
+		if (message.includes("non-empty directory")) return "non-empty-target";
+		if (message.includes("module name must be")) return "invalid-module-name";
+		if (message.includes("template repo must be")) return "invalid-template-repo";
+		if (message.includes("template ref is required")) return "missing-template-ref";
+		if (message.includes("unknown option")) return "unknown-option";
+		if (message.includes("unexpected argument")) return "unexpected-argument";
+	}
+	return "unknown";
+}
+
+function handleTelemetrySubcommand(action: Options["telemetryAction"]): void {
+	if (action === "telemetry-status") {
+		const enabled = isTelemetryEnabled();
+		log.info(
+			`Anonymous telemetry is ${enabled ? "enabled" : "disabled"}. Endpoint: ${getTelemetryEndpoint()}`,
+		);
+		log.info("More info: https://getcoral.dev/telemetry");
+		return;
+	}
+	if (action === "telemetry-disable") {
+		setPersistentTelemetryDisabled(true);
+		log.success("Anonymous telemetry disabled.");
+		return;
+	}
+	if (action === "telemetry-enable") {
+		setPersistentTelemetryDisabled(false);
+		log.success("Anonymous telemetry enabled.");
+		return;
+	}
+}
+
 function isValidModuleName(value: string): boolean {
 	return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value);
 }
@@ -130,10 +222,17 @@ function isValidTemplateRepo(value: string): boolean {
 	return /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(value);
 }
 
+class CliAbortError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = "CliAbortError";
+	}
+}
+
 function unwrapPrompt<T>(value: T | symbol, message: string): T {
 	if (isCancel(value)) {
 		cancel(message);
-		process.exit(0);
+		throw new CliAbortError(message);
 	}
 
 	return value;
@@ -224,9 +323,29 @@ function normalizeWorkspaceDependencyRanges(packageJsonPath: string): void {
 }
 
 async function main(): Promise<void> {
+	const options = parseArgs(process.argv.slice(2));
+
+	if (options.telemetryAction !== "scaffold") {
+		handleTelemetrySubcommand(options.telemetryAction);
+		return;
+	}
+
 	printBanner();
 
-	const options = parseArgs(process.argv.slice(2));
+	if (shouldShowFirstRunNotice()) {
+		note(
+			[
+				"create-coral collects anonymous usage data to help improve the CLI.",
+				"Disable any time with --no-telemetry, --telemetry-disable, or CORAL_TELEMETRY_DISABLED=1.",
+				"Details: https://getcoral.dev/telemetry",
+			].join("\n"),
+			"Anonymous telemetry",
+		);
+		markFirstRunNoticeShown();
+	}
+
+	sendEvent("cli.run", {}, PACKAGE_VERSION);
+
 	const targetFallback =
 		options.targetDir ?? (options.moduleName ? `./${options.moduleName}` : undefined);
 	const targetArg =
@@ -335,6 +454,15 @@ async function main(): Promise<void> {
 		const sourceDir = cloneTemplateRepo(templateRepo, templateRef, tempDir);
 		progress.stop("Template cloned");
 
+		sendEvent(
+			"cli.template-selected",
+			{
+				...deriveModuleNameShape(moduleName),
+				...deriveTemplateShape(templateRepo, templateRef),
+			},
+			PACKAGE_VERSION,
+		);
+
 		progress.start("Wiring up module files");
 		copyTemplate(sourceDir, targetDir);
 
@@ -361,8 +489,10 @@ async function main(): Promise<void> {
 			progress.start("Installing dependencies with pnpm");
 			run("pnpm", ["install"], targetDir);
 			progress.stop("Dependencies installed");
+			sendEvent("cli.install-completed", { result: "success" }, PACKAGE_VERSION);
 		} else {
 			log.step("Skipped dependency installation.");
+			sendEvent("cli.install-skipped", {}, PACKAGE_VERSION);
 		}
 
 		const relativeTargetDir = path.relative(process.cwd(), targetDir);
@@ -385,7 +515,26 @@ async function main(): Promise<void> {
 	}
 }
 
-void main().catch((error: Error) => {
-	log.error(error.message);
-	process.exit(1);
-});
+async function runAndExit(): Promise<never> {
+	try {
+		await main();
+		await flushTelemetry();
+		process.exit(0);
+	} catch (error) {
+		const isAbort =
+			error instanceof CliAbortError ||
+			(error instanceof Error && /refusing to scaffold/i.test(error.message));
+		if (!(error instanceof CliAbortError)) {
+			log.error(error instanceof Error ? error.message : String(error));
+		}
+		sendEvent(
+			isAbort ? "cli.aborted" : "cli.error",
+			{ errorClass: classifyError(error) },
+			PACKAGE_VERSION,
+		);
+		await flushTelemetry();
+		process.exit(isAbort ? 0 : 1);
+	}
+}
+
+void runAndExit();
