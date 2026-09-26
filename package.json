@@ -1,7 +1,7 @@
 {
 	"name": "create-coral",
 	"packageManager": "pnpm@10.32.1",
-	"version": "1.0.3",
+	"version": "1.0.4",
 	"type": "module",
 	"description": "Scaffold a new Coral module from the official template.",
 	"repository": {
