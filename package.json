@@ -8,7 +8,7 @@
 		"type": "git",
 		"url": "git+https://github.com/Get-Coral/create-coral.git"
 	},
-	"homepage": "https://github.com/Get-Coral/create-coral#readme",
+	"homepage": "https://getcoral.dev",
 	"bugs": {
 		"url": "https://github.com/Get-Coral/create-coral/issues"
 	},
@@ -35,7 +35,12 @@
 		"coral",
 		"create",
 		"scaffold",
+		"generator",
+		"cli",
+		"starter",
 		"jellyfin",
+		"self-hosted",
+		"docker",
 		"template"
 	],
 	"license": "MIT",
