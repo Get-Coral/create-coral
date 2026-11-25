@@ -7,7 +7,7 @@ Scaffold a new Coral module from the official template repository.
 
 The CLI is interactive by default and ships a guided setup flow for naming, destination, and dependency installation.
 
-The important bit: the template repository is the standard. That is where shared `package.json` scripts, GitHub workflows, Biome rules, and repository conventions should live so every new repo starts the same way.
+The important bit: the template repository is the standard. That is where shared `package.json` scripts, GitHub workflows, Vite+ (Oxlint and Oxfmt) config, and repository conventions should live so every new repo starts the same way.
 
 ## Usage
 
