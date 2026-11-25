@@ -13,20 +13,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.32.1
-
-      - uses: actions/setup-node@v4
+      - uses: voidzero-dev/setup-vp@cab1ab9eaff52d4857875f4f2c016e36af8f2c76 # v1.22.0
         with:
           node-version: 24
-          cache: pnpm
+          cache: true
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Lint and typecheck
+        run: vp run check
 
-      - name: Syntax check
-        run: pnpm check
-
+      # Scaffolds a module from the template, then installs, checks and builds
+      # it, so a template change that breaks new modules fails here.
       - name: Smoke test
-        run: pnpm test:smoke
+        run: vp run test:scaffold
